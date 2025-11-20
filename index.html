@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Olivetti Valentine AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Reenie+Beanie&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              typewriter: ['"Courier Prime"', 'monospace'],
+              handwriting: ['"Reenie Beanie"', 'cursive'],
+              sans: ['Helvetica', 'Arial', 'sans-serif'],
+            },
+            colors: {
+              'olivetti-red': '#D7261E',
+              'olivetti-shadow': '#8B100B',
+              'olivetti-orange': '#FF5500',
+              'paper-white': '#F9F7F1',
+            },
+            boxShadow: {
+              'lamp-glow': '0 0 60px 30px rgba(253, 224, 71, 0.3)',
+              'lamp-glow-intense': '0 0 100px 50px rgba(253, 224, 71, 0.5)',
+              'plastic-gloss': 'inset 0 2px 2px rgba(255,255,255,0.3), inset 0 -2px 5px rgba(0,0,0,0.1)',
+              'key-depth': '0 4px 0 #1a1a1a, 0 5px 5px rgba(0,0,0,0.4)',
+              'key-depth-pressed': '0 0 0 #1a1a1a, 0 1px 2px rgba(0,0,0,0.4)',
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        /* cursor: none; Removed to restore default mouse */
+      }
+      
+      /* Realistic Paper Texture */
+      .paper-texture {
+        background-color: #F9F7F1;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+        position: relative;
+      }
+      
+      .paper-texture::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(to bottom, rgba(0,0,0,0.02) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.05) 100%);
+        pointer-events: none;
+      }
+
+      .emboss-text {
+        text-shadow: -1px -1px 1px rgba(0,0,0,0.3), 1px 1px 1px rgba(255,255,255,0.2);
+      }
+      
+      .key-legend {
+        text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+      }
+
+      /* Markdown Content Styling in Tray */
+      .markdown-content h1 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; margin-top: 0.5em; }
+      .markdown-content h2 { font-size: 1.25em; font-weight: bold; margin-bottom: 0.4em; margin-top: 0.4em; border-bottom: 1px dashed #999; }
+      .markdown-content h3 { font-size: 1.1em; font-weight: bold; margin-bottom: 0.3em; }
+      .markdown-content p { margin-bottom: 0.8em; }
+      .markdown-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.8em; }
+      .markdown-content ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 0.8em; }
+      .markdown-content strong { font-weight: bold; }
+      .markdown-content em { font-style: italic; }
+      .markdown-content blockquote { border-left: 3px solid #ccc; padding-left: 1em; margin-left: 0; font-style: italic; color: #555; }
+      .markdown-content code { background: rgba(0,0,0,0.05); padding: 0 4px; border-radius: 2px; font-family: 'Courier Prime', monospace; }
+      .markdown-content pre { background: rgba(0,0,0,0.05); padding: 8px; border-radius: 4px; overflow-x: auto; margin-bottom: 0.8em; }
+
+      /* Hide scrollbar for cleaner look */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.2);
+        border-radius: 4px;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
