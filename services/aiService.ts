@@ -20,9 +20,8 @@ export const generateAIResponse = async (
       const apiKey = getGeminiKey(apiKeys.gemini);
       const ai = new GoogleGenAI({ apiKey });
       
-      // Logic: If user provided a custom key, assume they want the latest/best (Gemini 3.0 Preview)
-      // If using default system env key, stick to 2.5 Flash for stability/cost.
-      const modelName = apiKeys.gemini ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+      // Use selected model or default to Flash
+      const modelName = apiKeys.geminiModel || 'gemini-2.5-flash';
       
       const response = await ai.models.generateContent({
         model: modelName,

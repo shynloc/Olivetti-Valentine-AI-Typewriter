@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { KeyState } from '../types';
 import { playKeySound } from '../services/soundService';
@@ -12,6 +11,12 @@ interface TypewriterKeysProps {
   isCapsLock: boolean;
   isShift: boolean;
   backlightIntensity?: number; // 0.0 to 1.0
+  isDigitalMode?: boolean;
+  bufferText?: string;
+  onBufferChange?: (val: string) => void;
+  onPrint?: () => void;
+  onTriggerAI?: () => void;
+  isAIActive?: boolean;
 }
 
 type KeyDef = string | { 
@@ -69,11 +74,24 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
   isRed,
   isCapsLock,
   isShift,
-  backlightIntensity = 0.5
+  backlightIntensity = 0.5,
+  isDigitalMode = false,
+  bufferText = "",
+  onBufferChange,
+  onPrint,
+  onTriggerAI,
+  isAIActive = false
 }) => {
   
   // Local state to handle animation for mouse clicks independently of parent state
   const [localActiveKeys, setLocalActiveKeys] = useState<KeyState>({});
+
+  const triggerKeyAnimation = (code: string) => {
+      setLocalActiveKeys(prev => ({ ...prev, [code]: true }));
+      setTimeout(() => {
+        setLocalActiveKeys(prev => ({ ...prev, [code]: false }));
+      }, 150);
+  };
 
   const handlePress = (keyDef: KeyDef) => {
       if (navigator.vibrate) {
@@ -85,10 +103,7 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
       const code = typeof keyDef === 'string' ? keyDef : (keyDef.code || keyDef.label);
 
       // Trigger local animation
-      setLocalActiveKeys(prev => ({ ...prev, [code]: true }));
-      setTimeout(() => {
-        setLocalActiveKeys(prev => ({ ...prev, [code]: false }));
-      }, 150);
+      triggerKeyAnimation(code);
 
       // Special handling for mapping event names
       let eventChar = code;
@@ -101,7 +116,16 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
       else if (code === 'Tab') eventChar = 'Tab';
       else if (label.length === 1) eventChar = label.toLowerCase();
       
-      onKeyClick(eventChar);
+      // In Digital Mode, redirect functionality
+      if (isDigitalMode) {
+          if (code === 'ENT') {
+              if (onPrint) onPrint(); // Red Key acts as Print
+          } else {
+              onKeyClick(eventChar); // Pass other keys for generic feedback if needed, mainly for visual
+          }
+      } else {
+          onKeyClick(eventChar);
+      }
   };
 
   const renderKey = (keyDef: KeyDef, index: number) => {
@@ -250,7 +274,7 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
                         `}
                         style={isBacklit ? backlightStyle : (!isEnter && !isRedKey && !isSpecial) ? { color: '#e0e0e0', opacity: 0.9, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.9))' } : {}}
                       >
-                        {code === 'BS' ? '←' : code === 'ENT' ? '↩' : label}
+                        {code === 'BS' ? '←' : code === 'ENT' ? (isDigitalMode ? 'PRINT' : '↩') : label}
                       </span>
                    )}
                  </div>
@@ -263,39 +287,91 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
   // Space Row Keys definition
   const spaceRowLeft = { label: 'BOLD', code: 'BOLD', width: 'w-14' };
   const spaceRowRight = { label: 'RED', code: 'RED', width: 'w-14' };
+  // Red Enter is actually ROWS[2] last item
 
   const isSpaceActive = localActiveKeys[' '] || activeKeys[' '];
 
   return (
     <div className="relative z-20 flex flex-col items-center pt-2 pb-2 w-full px-4">
-         {/* Row 1 */}
-         <div className="flex justify-center w-full">
-             {ROWS[0].map((def, i) => renderKey(def, i))}
-         </div>
-         {/* Row 2 */}
-         <div className="flex justify-center w-full pl-0">
-             {ROWS[1].map((def, i) => renderKey(def, i))}
-         </div>
-         {/* Row 3 */}
-         <div className="flex justify-center w-full">
-             {ROWS[2].map((def, i) => renderKey(def, i))}
-         </div>
-         {/* Row 4 */}
-         <div className="flex justify-center w-full">
-             {ROWS[3].map((def, i) => renderKey(def, i))}
-         </div>
+         
+         {/* DIGITAL MODE: Text Buffer Area */}
+         {isDigitalMode && (
+             <div className="w-full h-[180px] bg-[#050505] rounded-xl shadow-inner border border-zinc-800 p-4 mb-4 relative overflow-hidden group">
+                 <textarea 
+                    value={bufferText}
+                    onChange={(e) => onBufferChange?.(e.target.value)}
+                    className="w-full h-full bg-transparent text-emerald-400 font-typewriter text-[18px] outline-none resize-none placeholder-emerald-900/50"
+                    placeholder="> Input buffer ready..."
+                    spellCheck={false}
+                 />
+                 
+                 {/* AI Trigger Button */}
+                 {isAIActive && onTriggerAI && (
+                     <button 
+                        onClick={onTriggerAI}
+                        className="absolute bottom-4 right-4 bg-emerald-900/80 hover:bg-emerald-700 text-emerald-100 text-[10px] px-3 py-1 rounded border border-emerald-500/30 flex items-center gap-2 shadow-lg hover:shadow-emerald-500/20 transition-all uppercase tracking-widest font-bold"
+                     >
+                        <span className="material-icons text-xs">send</span>
+                        TRANSMIT
+                     </button>
+                 )}
+                 
+                 <div className="absolute top-2 right-2 flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                 </div>
+                 
+                 {/* CRT Scanline effect */}
+                 <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] pointer-events-none opacity-20"></div>
+             </div>
+         )}
+
+         {/* MECHANICAL KEYS: Rows 1-3 (Hidden in Digital Mode) */}
+         {!isDigitalMode && (
+             <>
+                 {/* Row 1 */}
+                 <div className="flex justify-center w-full">
+                     {ROWS[0].map((def, i) => renderKey(def, i))}
+                 </div>
+                 {/* Row 2 */}
+                 <div className="flex justify-center w-full pl-0">
+                     {ROWS[1].map((def, i) => renderKey(def, i))}
+                 </div>
+                 {/* Row 3 */}
+                 <div className="flex justify-center w-full">
+                     {ROWS[2].map((def, i) => renderKey(def, i))}
+                 </div>
+             </>
+         )}
+
+         {/* HYBRID ROW (Row 4 + Space) - Modified for Digital Mode */}
+         {/* In Digital Mode, we only want the Red Enter button mainly, but showing the space bar row keeps visual anchor */}
+         
+         {!isDigitalMode && (
+             <div className="flex justify-center w-full">
+                 {ROWS[3].map((def, i) => renderKey(def, i))}
+             </div>
+         )}
          
          {/* SPACEBAR ROW */}
          <div className="mt-2 flex items-center justify-center gap-4">
-            {/* BOLD KEY */}
-            {renderKey(spaceRowLeft, 0)}
+            {/* BOLD KEY (Left) - Hide in digital? Keep for balance */}
+            {!isDigitalMode && renderKey(spaceRowLeft, 0)}
 
             {/* SPACEBAR */}
             <button
-                className="relative w-64 h-10 outline-none group perspective-500 mx-2 cursor-pointer"
+                className={`relative outline-none group perspective-500 mx-2 cursor-pointer ${isDigitalMode ? 'w-48 h-10' : 'w-64 h-10'}`}
                 onMouseDown={(e) => {
                     e.preventDefault();
-                    handlePress({ label: ' ' });
+                    triggerKeyAnimation(' ');
+
+                    if(isDigitalMode && onBufferChange) {
+                        onBufferChange(bufferText + ' ');
+                        playKeySound();
+                    } else {
+                        handlePress({ label: ' ' });
+                    }
                 }}
             >
                 <div className={`
@@ -323,8 +399,11 @@ const TypewriterKeys: React.FC<TypewriterKeysProps> = ({
                  </div>
             </button>
 
-            {/* RED KEY */}
-            {renderKey(spaceRowRight, 0)}
+            {/* RED KEY (Right) - Hide in digital */}
+            {!isDigitalMode && renderKey(spaceRowRight, 0)}
+
+            {/* In Digital Mode, we force the ENTER key to appear here or use a custom one */}
+            {isDigitalMode && renderKey({ label: 'ENT', code: 'ENT', width: 'w-24' }, 99)}
          </div>
     </div>
   );

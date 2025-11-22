@@ -50,6 +50,8 @@ const enTranslations = {
   authorize: "AUTHORIZE",
   topSecret: "TOP SECRET",
   confidential: "CONFIDENTIAL",
+  nickname: "USER NICKNAME",
+  enterNickname: "Enter Name for Watermark",
   // Markdown CheatSheet
   syntaxGuide: "Syntax Guide",
   header: "Header",
@@ -65,7 +67,13 @@ const enTranslations = {
   // Thermometer
   temperature: "TEMP",
   precise: "PRECISE",
-  creative: "CREATIVE"
+  creative: "CREATIVE",
+  // Camera
+  polaroid: "POLAROID I-2",
+  aiPrint: "AI PRINT",
+  enterPrompt: "Enter image prompt...",
+  generating: "DEVELOPING...",
+  shutter: "Shutter"
 };
 
 const zhCNTranslations: typeof enTranslations = {
@@ -105,6 +113,8 @@ const zhCNTranslations: typeof enTranslations = {
   authorize: "授权",
   topSecret: "绝密",
   confidential: "机密",
+  nickname: "用户昵称",
+  enterNickname: "输入水印显示名称",
   syntaxGuide: "语法指南",
   header: "标题",
   bold: "粗体",
@@ -117,7 +127,12 @@ const zhCNTranslations: typeof enTranslations = {
   instruction2: "按回车键换行（或发送给 AI）。",
   temperature: "温度",
   precise: "严谨",
-  creative: "创意"
+  creative: "创意",
+  polaroid: "宝丽来 I-2",
+  aiPrint: "AI 印相",
+  enterPrompt: "输入画面描述...",
+  generating: "显影中...",
+  shutter: "快门"
 };
 
 const zhTWTranslations: typeof enTranslations = {
@@ -157,6 +172,8 @@ const zhTWTranslations: typeof enTranslations = {
   authorize: "授權",
   topSecret: "絕密",
   confidential: "機密",
+  nickname: "用戶暱稱",
+  enterNickname: "輸入浮水印顯示名稱",
   syntaxGuide: "語法指南",
   header: "標題",
   bold: "粗體",
@@ -169,7 +186,12 @@ const zhTWTranslations: typeof enTranslations = {
   instruction2: "按回車鍵換行（或發送給 AI）。",
   temperature: "溫度",
   precise: "嚴謹",
-  creative: "創意"
+  creative: "創意",
+  polaroid: "寶麗來 I-2",
+  aiPrint: "AI 印相",
+  enterPrompt: "輸入畫面描述...",
+  generating: "顯影中...",
+  shutter: "快門"
 };
 
 const jaTranslations: typeof enTranslations = {
@@ -209,6 +231,8 @@ const jaTranslations: typeof enTranslations = {
   authorize: "承認",
   topSecret: "極秘",
   confidential: "機密",
+  nickname: "ユーザー名",
+  enterNickname: "透かし用の名前を入力",
   syntaxGuide: "構文ガイド",
   header: "見出し",
   bold: "太字",
@@ -221,7 +245,12 @@ const jaTranslations: typeof enTranslations = {
   instruction2: "ENTERで改行（有効な場合はAIに送信）。",
   temperature: "温度",
   precise: "厳格",
-  creative: "独創"
+  creative: "独創",
+  polaroid: "ポラロイド I-2",
+  aiPrint: "AI 現像",
+  enterPrompt: "画像のプロンプトを入力...",
+  generating: "現像中...",
+  shutter: "シャッター"
 };
 
 const translations = {

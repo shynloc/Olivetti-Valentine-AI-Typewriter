@@ -1,7 +1,9 @@
 
 export interface PaperSheet {
   id: string;
-  content: string[]; // Array of lines
+  type: 'text' | 'image'; // New field to distinguish content type
+  content: string[]; // For text sheets, lines of text. For image sheets, [0] is base64/url, [1] is prompt/caption
+  timestamp: number;
 }
 
 export interface KeyState {
@@ -14,6 +16,8 @@ export interface APIKeys {
   gemini: string;
   deepseek: string;
   deepSeekModel: 'deepseek-chat' | 'deepseek-reasoner';
+  geminiModel: 'gemini-2.5-flash' | 'gemini-3-pro-preview';
+  nickname: string; // Added user nickname
 }
 
 export type Language = 'en' | 'zh-CN' | 'zh-TW' | 'ja';

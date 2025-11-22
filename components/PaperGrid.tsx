@@ -15,19 +15,36 @@ interface PaperGridProps {
   onClose: () => void;
   onDelete: (ids: string[]) => void;
   onRestore?: (ids: string[]) => void;
+  nickname: string; // Pass nickname for rendering hidden print elements
 }
 
+// Updated 90s Lo-fi Aesthetic Filter - High Saturation
+const vintageFilterStyle = {
+    filter: 'contrast(1.1) brightness(0.95) saturate(1.5) sepia(0.2) hue-rotate(-5deg) blur(0.5px)'
+};
+
+const lightLeakOverlay = {
+    background: 'linear-gradient(45deg, rgba(255,100,50,0.1) 0%, transparent 20%, transparent 80%, rgba(255,200,100,0.15) 100%)',
+    mixBlendMode: 'screen' as const
+};
+
+const noiseTexture = `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`;
+
 // Internal component for Scaled Paper Thumbnail to match Zoom View exactly
-const PaperThumbnail = ({ sheet, getRenderedMarkdown, t }: any) => {
+const PaperThumbnail = ({ sheet, getRenderedMarkdown, t, nickname }: any) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(1);
+    
+    const isImage = sheet.type === 'image';
+    const width = isImage ? 600 : 850; // Match Zoom View dimensions
+    const height = isImage ? 720 : 1100;
 
     useEffect(() => {
         const update = () => {
             if(containerRef.current) {
-                // Calculate scale based on container width vs standard 850px paper width
+                // Calculate scale based on container width vs standard width
                 const currentWidth = containerRef.current.offsetWidth;
-                setScale(currentWidth / 850);
+                setScale(currentWidth / width);
             }
         };
         
@@ -35,37 +52,67 @@ const PaperThumbnail = ({ sheet, getRenderedMarkdown, t }: any) => {
         const observer = new ResizeObserver(update);
         if(containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
-    }, []);
+    }, [width]);
 
     return (
-        <div ref={containerRef} className="w-full h-full relative bg-paper-white paper-texture overflow-hidden shadow-sm">
+        <div ref={containerRef} className={`w-full h-full relative ${isImage ? 'bg-white' : 'bg-paper-white paper-texture'} overflow-hidden shadow-sm`}>
             <div 
                 style={{ 
-                    width: '850px', 
-                    height: '1100px', // Fixed height for thumbnail view calculation
+                    width: `${width}px`, 
+                    height: `${height}px`, 
                     transform: `scale(${scale})`, 
                     transformOrigin: 'top left',
                 }}
-                className="absolute top-0 left-0 p-16 flex flex-col"
+                className={`absolute top-0 left-0 ${isImage ? 'p-6 pb-16 bg-white flex flex-col' : 'p-16 flex flex-col'}`}
             >
-                <div className="flex-1 overflow-hidden">
-                     <div 
-                        className="font-typewriter text-[14px] leading-relaxed text-zinc-900 markdown-content"
-                        dangerouslySetInnerHTML={{ __html: getRenderedMarkdown(sheet.content) }}
-                    />
-                </div>
-                
-                {/* Footer matching PaperStack exactly */}
-                <div className="mt-16 pt-8 border-t-2 border-zinc-200 flex justify-between items-end opacity-60 shrink-0">
-                    <div className="text-xs font-typewriter leading-tight text-zinc-500">
-                        <span className="uppercase tracking-wider">{t('archived')}</span>: {new Date().toLocaleDateString()} <br/>
-                        <span className="uppercase tracking-wider">{t('ref')}</span>: {sheet.id.substring(0,8)}
-                    </div>
-                    <div className="font-serif italic text-lg text-zinc-600">Olivetti Valentine AI</div>
-                </div>
-                
-                {/* Gradient Fade for overflow text in thumbnail */}
-                <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#F9F7F1] to-transparent pointer-events-none"></div>
+                {isImage ? (
+                     // POLAROID LAYOUT
+                     <>
+                        <div className="aspect-square w-full bg-zinc-100 relative overflow-hidden shadow-inner border border-gray-200">
+                            <img 
+                                src={sheet.content[0]} 
+                                className="w-full h-full object-cover relative z-0"
+                                style={vintageFilterStyle}
+                                alt="Polaroid" 
+                            />
+                            {/* Light Leak Overlay */}
+                            <div className="absolute inset-0 z-10 pointer-events-none" style={lightLeakOverlay}></div>
+                            {/* Grain Overlay */}
+                            <div className="absolute inset-0 opacity-[0.08] pointer-events-none mix-blend-overlay z-20" style={{ backgroundImage: noiseTexture }}></div>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-center pt-6 relative">
+                             <div 
+                                className="font-handwriting font-bold text-5xl text-[#2a2a2a] opacity-85 transform -rotate-2 mb-2 tracking-wide"
+                                style={{ 
+                                  textShadow: '0px 0px 1px rgba(0,0,0,0.1)', 
+                                  mixBlendMode: 'multiply',
+                                  filter: 'blur(0.2px)'
+                                }}
+                             >
+                                {nickname || 'User'}
+                             </div>
+                             <div className="text-xs text-zinc-400 font-sans tracking-widest uppercase max-w-[90%] truncate opacity-60">{sheet.content[1]}</div>
+                        </div>
+                     </>
+                ) : (
+                    // TEXT LAYOUT
+                    <>
+                        <div className="flex-1 overflow-hidden">
+                             <div 
+                                className="font-typewriter text-[18px] leading-relaxed text-zinc-900 markdown-content"
+                                dangerouslySetInnerHTML={{ __html: getRenderedMarkdown(sheet.content) }}
+                            />
+                        </div>
+                        
+                        <div className="mt-16 pt-8 border-t-2 border-zinc-200 flex justify-between items-end opacity-60 shrink-0">
+                            <div className="text-xs font-typewriter leading-tight text-zinc-500">
+                                <span className="uppercase tracking-wider">{t('archived')}</span>: {new Date(sheet.timestamp).toLocaleDateString()} <br/>
+                                <span className="uppercase tracking-wider">{t('ref')}</span>: {sheet.id.substring(0,8)}
+                            </div>
+                            <div className="font-serif italic text-lg text-zinc-600">Olivetti Valentine AI</div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -77,7 +124,8 @@ const PaperGrid: React.FC<PaperGridProps> = ({
   isTrashMode = false, 
   onClose, 
   onDelete,
-  onRestore
+  onRestore,
+  nickname
 }) => {
   const { t } = useLanguage();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -106,11 +154,9 @@ const PaperGrid: React.FC<PaperGridProps> = ({
 
   const handleDownloadMarkdown = (ids: string[]) => {
     sheets
-      .filter(s => ids.includes(s.id))
+      .filter(s => ids.includes(s.id) && s.type !== 'image')
       .forEach(sheet => {
-        // Content is raw text
         const text = sheet.content.join('\n');
-            
         const blob = new Blob([text], { type: 'text/markdown' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -137,12 +183,13 @@ const PaperGrid: React.FC<PaperGridProps> = ({
                     scale: 2,
                     backgroundColor: null,
                     useCORS: true,
+                    allowTaint: true
                   });
                   
                   const image = canvas.toDataURL("image/png");
                   const a = document.createElement('a');
                   a.href = image;
-                  a.download = `valentine-scan-${sheet.id}.png`;
+                  a.download = `valentine-${sheet.type === 'image' ? 'photo' : 'scan'}-${sheet.id}.png`;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);
@@ -169,31 +216,70 @@ const PaperGrid: React.FC<PaperGridProps> = ({
   const displayTitle = title === "Output Tray" ? t('outputTray') : title === "Trash Bin" ? t('trashBin') : title;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex flex-col animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-md flex flex-col animate-in fade-in duration-300">
         
         {/* --- HIDDEN PRINT CONTAINER (Full Size for rendering images) --- */}
         <div ref={printContainerRef} className="absolute top-0 left-0 opacity-0 pointer-events-none overflow-hidden w-0 h-0">
-            {sheets.map(sheet => (
-                <div 
-                    key={sheet.id} 
-                    id={`print-hidden-${sheet.id}`}
-                    className="relative w-[850px] min-h-[1100px] bg-paper-white paper-texture p-16 font-typewriter text-[14px] leading-relaxed text-zinc-900 mb-10 markdown-content"
-                >
-                    <div className="min-h-[800px]">
-                        <div 
-                            className="whitespace-pre-wrap break-words mb-1"
-                            dangerouslySetInnerHTML={{ __html: getRenderedMarkdown(sheet.content) }}
-                        />
+            {sheets.map(sheet => {
+                const isImage = sheet.type === 'image';
+                return (
+                    <div 
+                        key={sheet.id} 
+                        id={`print-hidden-${sheet.id}`}
+                        className={`
+                            relative ${isImage ? 'w-[600px] h-[720px] p-6 pb-16 bg-white' : 'w-[850px] min-h-[1100px] bg-paper-white paper-texture p-16'} 
+                            font-typewriter text-[18px] leading-relaxed text-zinc-900 mb-10 markdown-content
+                        `}
+                    >
+                        {isImage ? (
+                           <div className="flex flex-col h-full w-full bg-white">
+                                <div className="aspect-square w-full bg-zinc-100 relative overflow-hidden shadow-inner border border-gray-200">
+                                    <img 
+                                        src={sheet.content[0]} 
+                                        className="w-full h-full object-cover relative z-0"
+                                        style={vintageFilterStyle}
+                                        alt="Polaroid" 
+                                    />
+                                    {/* Light Leak Overlay */}
+                                    <div className="absolute inset-0 z-10 pointer-events-none" style={lightLeakOverlay}></div>
+                                    {/* Grain Overlay */}
+                                    <div className="absolute inset-0 opacity-[0.08] pointer-events-none mix-blend-overlay z-20" style={{ backgroundImage: noiseTexture }}></div>
+                                </div>
+                                <div className="flex-1 flex flex-col items-center justify-center pt-6">
+                                     <div 
+                                        className="font-handwriting font-bold text-5xl text-[#2a2a2a] opacity-85 transform -rotate-2 mb-2 tracking-wide"
+                                        style={{ 
+                                          textShadow: '0px 0px 1px rgba(0,0,0,0.1)', 
+                                          mixBlendMode: 'multiply',
+                                          filter: 'blur(0.2px)'
+                                        }}
+                                     >
+                                        {nickname || 'User'}
+                                     </div>
+                                     <div className="text-xs text-zinc-400 font-sans tracking-widest uppercase opacity-60">{sheet.content[1]}</div>
+                                     <div className="text-[8px] text-zinc-300 font-sans mt-4">POLAROID I-2 // AI PRINT // {new Date(sheet.timestamp).toLocaleDateString()}</div>
+                                </div>
+                           </div>
+                        ) : (
+                           <>
+                                <div className="min-h-[800px]">
+                                    <div 
+                                        className="whitespace-pre-wrap break-words mb-1"
+                                        dangerouslySetInnerHTML={{ __html: getRenderedMarkdown(sheet.content) }}
+                                    />
+                                </div>
+                                <div className="mt-16 pt-8 border-t-2 border-zinc-200 flex justify-between items-end opacity-60">
+                                    <div className="text-xs font-typewriter leading-tight text-zinc-500">
+                                        <span className="uppercase tracking-wider">{t('archived')}</span>: {new Date(sheet.timestamp).toLocaleDateString()} <br/>
+                                        <span className="uppercase tracking-wider">{t('ref')}</span>: {sheet.id}
+                                    </div>
+                                    <div className="font-serif italic text-lg text-zinc-600">Olivetti Valentine AI</div>
+                                </div>
+                           </>
+                        )}
                     </div>
-                    <div className="mt-16 pt-8 border-t-2 border-zinc-200 flex justify-between items-end opacity-60">
-                        <div className="text-xs font-typewriter leading-tight text-zinc-500">
-                            <span className="uppercase tracking-wider">{t('archived')}</span>: {new Date().toLocaleDateString()} <br/>
-                            <span className="uppercase tracking-wider">{t('ref')}</span>: {sheet.id}
-                        </div>
-                        <div className="font-serif italic text-lg text-zinc-600">Olivetti Valentine AI</div>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
 
         {/* Header / Toolbar */}
@@ -233,6 +319,7 @@ const PaperGrid: React.FC<PaperGridProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 pb-32 max-w-[1800px] mx-auto">
                     {sheets.map((sheet, idx) => {
                         const isSelected = selectedIds.has(sheet.id);
+                        const isImage = sheet.type === 'image';
                         return (
                             <div 
                                 key={sheet.id}
@@ -242,7 +329,7 @@ const PaperGrid: React.FC<PaperGridProps> = ({
                                     ${isSelected ? 'ring-4 ring-red-500 scale-105 z-10 shadow-2xl' : 'hover:scale-[1.02] hover:shadow-xl'}
                                 `}
                                 style={{
-                                    aspectRatio: '850/1100', // Maintain standard aspect ratio
+                                    aspectRatio: isImage ? '600/720' : '850/1100', // Adjust aspect ratio based on type
                                     transform: isSelected ? 'rotate(0deg)' : `rotate(${(idx % 2 === 0 ? 1 : -1) * 1}deg)`
                                 }}
                             >
@@ -250,6 +337,7 @@ const PaperGrid: React.FC<PaperGridProps> = ({
                                     sheet={sheet} 
                                     getRenderedMarkdown={getRenderedMarkdown} 
                                     t={t} 
+                                    nickname={nickname}
                                 />
 
                                 {/* Selection Overlay */}
@@ -332,7 +420,7 @@ const PaperGrid: React.FC<PaperGridProps> = ({
                         <span className="material-icons">delete_forever</span>
                         <span>{t('destroy')} ({selectedIds.size})</span>
                     </button>
-                 </>
+                </>
              )}
         </div>
     </div>

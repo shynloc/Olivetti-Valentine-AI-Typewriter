@@ -9,6 +9,7 @@ import PaperGrid from './components/PaperGrid';
 import MarkdownCheatSheet from './components/MarkdownCheatSheet';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import Thermometer from './components/Thermometer';
+import PolaroidCamera from './components/PolaroidCamera';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { PaperSheet, APIKeys, AIModel } from './types';
 import { playSwitchSound, playCrumpleSound, playPaperLoadSound, startAmbientSound, stopAmbientSound } from './services/soundService';
@@ -26,7 +27,9 @@ const InnerApp: React.FC = () => {
   const [apiKeys, setApiKeys] = useState<APIKeys>({ 
       gemini: '', 
       deepseek: '', 
-      deepSeekModel: 'deepseek-chat' 
+      deepSeekModel: 'deepseek-chat',
+      geminiModel: 'gemini-2.5-flash',
+      nickname: '' // Default empty nickname
   });
   const [selectedModel, setSelectedModel] = useState<AIModel>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
@@ -84,9 +87,15 @@ const InnerApp: React.FC = () => {
   const handlePaperFull = (content: string[]) => {
     const newSheet: PaperSheet = {
       id: generateId(),
-      content: content
+      type: 'text',
+      content: content,
+      timestamp: Date.now()
     };
     setCompletedSheets(prev => [...prev, newSheet]);
+  };
+  
+  const handlePhotoGenerated = (sheet: PaperSheet) => {
+      setCompletedSheets(prev => [...prev, sheet]);
   };
 
   const handleMoveToTrash = (ids: string[]) => {
@@ -157,7 +166,10 @@ const InnerApp: React.FC = () => {
       {/* Thermometer (AI Temp Control) */}
       <Thermometer value={aiTemperature} onChange={setAiTemperature} />
 
-      {/* The Finished Paper Basket (Right side) */}
+      {/* Polaroid I-2 Camera */}
+      <PolaroidCamera apiKeys={apiKeys} onPhotoGenerated={handlePhotoGenerated} />
+
+      {/* The Finished Paper Basket (Right side) - Moved down in component logic */}
       <PaperStack 
         sheets={completedSheets} 
         onOpenGrid={() => {
@@ -165,6 +177,7 @@ const InnerApp: React.FC = () => {
             setViewMode('spread');
         }}
         onDelete={(id) => handleMoveToTrash([id])}
+        nickname={apiKeys.nickname}
       />
 
       {/* The Trash Bin (Bottom Right) */}
@@ -197,6 +210,7 @@ const InnerApp: React.FC = () => {
              title="Output Tray"
              onClose={() => setViewMode('desktop')}
              onDelete={handleMoveToTrash}
+             nickname={apiKeys.nickname}
           />
       )}
 
@@ -209,6 +223,7 @@ const InnerApp: React.FC = () => {
              onClose={() => setViewMode('desktop')}
              onDelete={handlePermanentDelete}
              onRestore={handleRestoreFromTrash}
+             nickname={apiKeys.nickname}
           />
       )}
 

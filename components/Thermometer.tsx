@@ -15,10 +15,15 @@ const Thermometer: React.FC<ThermometerProps> = ({ value, onChange }) => {
   const trackRef = useRef<HTMLDivElement>(null);
 
   // State for Component Dragging
-  const [position, setPosition] = useState({ x: window.innerWidth - 280, y: 120 });
+  // Initial position changed to hover over the output tray area (bottom right)
+  const [position, setPosition] = useState({ x: window.innerWidth - 300, y: window.innerHeight * 0.5 });
   const [isDraggingComponent, setIsDraggingComponent] = useState(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const componentRef = useRef<HTMLDivElement>(null);
+
+  const textureStyle = {
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)'/%3E%3C/svg%3E")`
+  };
 
   // --- Temperature Adjustment Logic ---
   const handleInteraction = (clientY: number) => {
@@ -142,7 +147,7 @@ const Thermometer: React.FC<ThermometerProps> = ({ value, onChange }) => {
       <div className="relative w-14 h-64 bg-[#f0ebe0] rounded-full border border-zinc-300 shadow-lg flex justify-center py-4 overflow-hidden">
          
          {/* Texture overlay */}
-         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] mix-blend-multiply pointer-events-none"></div>
+         <div className="absolute inset-0 opacity-10 mix-blend-multiply pointer-events-none" style={textureStyle}></div>
          
          {/* Mounting screw top */}
          <div className="absolute top-2 w-2 h-2 bg-zinc-400 rounded-full shadow-inner border border-zinc-500">

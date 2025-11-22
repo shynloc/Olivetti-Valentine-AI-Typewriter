@@ -233,3 +233,95 @@ export const playCrumpleSound = () => {
   gain.connect(ctx.destination);
   noise.start(t);
 };
+
+export const playShutterSound = () => {
+  const ctx = getAudioContext();
+  const t = ctx.currentTime;
+
+  // 1. Sharp Click (Leaf Shutter)
+  const clickOsc = ctx.createOscillator();
+  clickOsc.type = 'square';
+  clickOsc.frequency.setValueAtTime(800, t);
+  clickOsc.frequency.exponentialRampToValueAtTime(100, t + 0.05);
+  
+  const clickGain = ctx.createGain();
+  clickGain.gain.setValueAtTime(0.7, t);
+  clickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+  
+  clickOsc.connect(clickGain);
+  clickGain.connect(ctx.destination);
+  clickOsc.start(t);
+  clickOsc.stop(t + 0.1);
+
+  // 2. High Frequency "Snap"
+  const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseBuffer.length; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  const snap = ctx.createBufferSource();
+  snap.buffer = noiseBuffer;
+  const snapFilter = ctx.createBiquadFilter();
+  snapFilter.type = 'highpass';
+  snapFilter.frequency.value = 3000;
+  
+  const snapGain = ctx.createGain();
+  snapGain.gain.setValueAtTime(0.6, t);
+  snapGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+
+  snap.connect(snapFilter);
+  snapFilter.connect(snapGain);
+  snapGain.connect(ctx.destination);
+  snap.start(t);
+};
+
+export const playMotorSound = () => {
+  const ctx = getAudioContext();
+  const t = ctx.currentTime;
+  const duration = 2.0; 
+
+  // Modern Electronic Servo Sound
+
+  // 1. The High-Pitched Whine (Triangle wave)
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'triangle';
+  osc1.frequency.setValueAtTime(600, t);
+  osc1.frequency.linearRampToValueAtTime(650, t + 0.2); // Spool up fast
+  osc1.frequency.linearRampToValueAtTime(640, t + duration - 0.2); 
+  osc1.frequency.linearRampToValueAtTime(100, t + duration); // Spool down
+
+  const gain1 = ctx.createGain();
+  gain1.gain.setValueAtTime(0, t);
+  gain1.gain.linearRampToValueAtTime(0.15, t + 0.1);
+  gain1.gain.setValueAtTime(0.15, t + duration - 0.1);
+  gain1.gain.linearRampToValueAtTime(0, t + duration);
+
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc1.start(t);
+  osc1.stop(t + duration);
+
+  // 2. The Smooth Motor Buzz (Sawtooth)
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'sawtooth';
+  osc2.frequency.setValueAtTime(150, t);
+  osc2.frequency.linearRampToValueAtTime(180, t + 0.2);
+  osc2.frequency.linearRampToValueAtTime(180, t + duration - 0.2);
+  osc2.frequency.linearRampToValueAtTime(50, t + duration);
+
+  const gain2 = ctx.createGain();
+  gain2.gain.setValueAtTime(0, t);
+  gain2.gain.linearRampToValueAtTime(0.1, t + 0.1);
+  gain2.gain.setValueAtTime(0.1, t + duration - 0.1);
+  gain2.gain.linearRampToValueAtTime(0, t + duration);
+
+  const filter2 = ctx.createBiquadFilter();
+  filter2.type = 'lowpass';
+  filter2.frequency.value = 400;
+
+  osc2.connect(filter2);
+  filter2.connect(gain2);
+  gain2.connect(ctx.destination);
+  osc2.start(t);
+  osc2.stop(t + duration);
+};

@@ -12,6 +12,10 @@ const Drawer: React.FC<DrawerProps> = ({ apiKeys, onSave }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localKeys, setLocalKeys] = useState<APIKeys>(apiKeys);
 
+  const textureStyle = {
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='wood'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23wood)'/%3E%3C/svg%3E")`
+  };
+
   const toggleDrawer = () => {
     playSwitchSound();
     // Slight delay for mechanical feel
@@ -88,7 +92,7 @@ const Drawer: React.FC<DrawerProps> = ({ apiKeys, onSave }) => {
              ${isOpen ? 'translate-y-[10px]' : 'translate-y-0 hover:-translate-y-1'}
           `}>
               {/* Wood/Metal Grain Texture Overlay */}
-              <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] rounded-lg pointer-events-none"></div>
+              <div className="absolute inset-0 opacity-20 rounded-lg pointer-events-none" style={textureStyle}></div>
 
               {/* Handle */}
               <div className="w-32 h-4 bg-zinc-900 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.5),inset_0_1px_2px_rgba(255,255,255,0.1)] flex items-center justify-center group-hover:bg-zinc-800 transition-colors">

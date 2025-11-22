@@ -28,7 +28,7 @@ const GeminiLogo = () => (
 
 const DeepSeekLogo = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-     <path d="M12,2 C17.5,2 22,6.5 22,12 C22,17.5 17.5,22 12,22 C6.5,22 2,17.5 2,12 C2,6.5 6.5,2 12,2 Z M12,18 C15.3,18 18,15.3 18,12 C18,8.7 15.3,6 12,6 C8.7,6 6,8.7 6,12 C6,15.3 8.7,18 12,18 Z" opacity="0.4"/>
+     <path d="M12,2 C17.5,2 22,6.5 22,12 C22,17.5 17.5,22 12,22 C6.5,22 2,17.5 2,17.5 2,12 C2,6.5 6.5,2 12,2 Z M12,18 C15.3,18 18,15.3 18,12 C18,8.7 15.3,6 12,6 C8.7,6 6,8.7 6,12 C6,15.3 8.7,18 12,18 Z" opacity="0.4"/>
      <path d="M13.5,8.5 L10.5,12 L13.5,15.5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
   </svg>
 );
@@ -74,11 +74,17 @@ const Typewriter: React.FC<TypewriterProps> = ({
   // Backlight Control
   const [backlightIntensity, setBacklightIntensity] = useState(0.6);
 
+  // New: Digital Mode
+  const [isDigitalMode, setIsDigitalMode] = useState(false);
+  const [bufferText, setBufferText] = useState("");
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Fix: Only focus if not interacting with form elements
     const focusInput = (e?: MouseEvent) => {
+       if (isDigitalMode) return; // Don't steal focus in digital mode (textarea needs it)
+
        if (e && e.target instanceof HTMLElement) {
            const tagName = e.target.tagName;
            if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT' || e.target.closest('input, textarea, select')) {
@@ -90,7 +96,7 @@ const Typewriter: React.FC<TypewriterProps> = ({
     document.addEventListener('click', focusInput as any);
     focusInput(undefined);
     return () => document.removeEventListener('click', focusInput as any);
-  }, []);
+  }, [isDigitalMode]);
 
   // Helper to convert strokes back to raw text strings for Markdown processing
   const serializeStrokes = useCallback((strokes: Stroke[][]): string[] => {
@@ -276,9 +282,60 @@ const Typewriter: React.FC<TypewriterProps> = ({
     }, 40); // Slightly faster for AI
   };
 
+  // --- Digital Mode Logic ---
+
+  const handleDigitalAI = async () => {
+      if (!selectedModel || !bufferText.trim()) return;
+
+      setIsThinking(true);
+      playSwitchSound(); // Transmit sound
+      
+      const langName = language === 'zh-CN' ? 'Simplified Chinese' : 
+                       language === 'zh-TW' ? 'Traditional Chinese' : 
+                       language === 'ja' ? 'Japanese' : 'English';
+      
+      const systemInstruction = `You are a helpful assistant typing on a vintage typewriter. Your output will be rendered using Markdown. Please use Markdown formatting (e.g., # headers, **bold**, *italics*, - lists) to structure your response nicely. Keep the tone nostalgic and concise. Please reply in ${langName}.`;
+      
+      const fallbackError = "Error: Connection failed.";
+      
+      // Temporary loading text in buffer? Maybe unnecessary, just disable input
+      const response = await generateAIResponse(bufferText, selectedModel, apiKeys, systemInstruction, fallbackError, aiTemperature);
+      
+      setIsThinking(false);
+      setBufferText(response); // Replace buffer with response for editing
+      playReturnSound(); // Receive sound
+  };
+
+  const handleDigitalPrint = async () => {
+      if (!bufferText) return;
+      playReturnSound();
+      
+      setIsTyping(true);
+      const textToPrint = bufferText;
+      setBufferText(""); // Clear buffer
+
+      let i = 0;
+      // Fast print simulation
+      const typeInterval = setInterval(() => {
+          if (i < textToPrint.length) {
+              const char = textToPrint[i];
+              if (char === '\n') {
+                  typeChar('Enter', false); // Allow sound
+              } else {
+                  typeChar(char, true); // Silent keypresses for speed? No, loud is better
+              }
+              i++;
+          } else {
+              clearInterval(typeInterval);
+              typeChar('Enter');
+              setIsTyping(false);
+          }
+      }, 30);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (isTyping || isThinking || isEjecting) {
-        e.preventDefault();
+    if (isTyping || isThinking || isEjecting || isDigitalMode) {
+        if (!isDigitalMode) e.preventDefault(); // Stop default typing in mechanical mode
         return; 
     }
     
@@ -328,6 +385,8 @@ const Typewriter: React.FC<TypewriterProps> = ({
   };
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (isDigitalMode) return;
+
     const key = e.key;
     let mapKey = key.toUpperCase();
     
@@ -381,8 +440,10 @@ const Typewriter: React.FC<TypewriterProps> = ({
       }
   };
 
-  const lineHeight = 24; 
-  const paperTranslationY = Math.min(0, - (currentStrokes.length * lineHeight) + 150);
+  // Increased line height for 18px font
+  const lineHeight = 28; 
+  // Adjusted offset + 200 (was 150) to ensure paper scrolls up higher to clear the red bar
+  const paperTranslationY = Math.min(0, - (currentStrokes.length * lineHeight) + 200);
 
   return (
     <div className="relative flex flex-col items-center w-[750px] mx-auto pt-24 select-none perspective-1000 group pointer-events-auto scale-100">
@@ -394,11 +455,13 @@ const Typewriter: React.FC<TypewriterProps> = ({
         onKeyDown={handleKeyDown}
         onKeyUp={handleKeyUp}
         autoFocus
+        disabled={isDigitalMode}
       />
 
       {/* --- PAPER FEED SYSTEM --- */}
+      {/* Changed top from -180px to -250px to physically lift the paper out of the chassis blockage */}
       <div className={`
-           absolute top-[-180px] z-10 w-[580px] flex flex-col items-center pointer-events-none 
+           absolute top-[-250px] z-10 w-[580px] flex flex-col items-center pointer-events-none 
            will-change-transform ease-in-out
            ${isEjecting ? 'transition-transform duration-700 ease-in' : 'transition-transform duration-500'}
            `}
@@ -409,15 +472,16 @@ const Typewriter: React.FC<TypewriterProps> = ({
            }}>
           
           {/* The Paper */}
-          <div className="relative w-[520px] min-h-[650px] bg-paper-white paper-texture shadow-[0_5px_15px_rgba(0,0,0,0.2)] p-12 pt-20 text-left font-typewriter text-sm text-zinc-900 leading-[24px] origin-bottom">
+          {/* Increased top padding (pt-32) to ensure the first line starts visibly below the paper top edge, but visible above the machine */}
+          <div className="relative w-[520px] min-h-[650px] bg-paper-white paper-texture shadow-[0_5px_15px_rgba(0,0,0,0.2)] p-12 pt-32 text-left font-typewriter text-[18px] text-zinc-900 leading-[28px] origin-bottom">
                {currentStrokes.map((line, idx) => (
-                   <div key={idx} className="min-h-[24px] relative whitespace-pre-wrap break-words">
+                   <div key={idx} className="min-h-[28px] relative whitespace-pre-wrap break-words">
                        {line.map((stroke, sIdx) => (
                            <span key={sIdx} className={stroke.classes}>{stroke.char}</span>
                        ))}
                        {/* Cursor */}
-                       {idx === currentStrokes.length - 1 && !isTyping && !isThinking && !isEjecting && (
-                           <span className={`absolute ml-0.5 -bottom-1 inline-block w-2 h-4 animate-pulse align-bottom ${isRed ? 'bg-red-500/50' : 'bg-black/50'}`}></span>
+                       {idx === currentStrokes.length - 1 && !isTyping && !isThinking && !isEjecting && !isDigitalMode && (
+                           <span className={`absolute ml-0.5 -bottom-1 inline-block w-2.5 h-5 animate-pulse align-bottom ${isRed ? 'bg-red-500/50' : 'bg-black/50'}`}></span>
                        )}
                    </div>
                ))}
@@ -488,7 +552,8 @@ const Typewriter: React.FC<TypewriterProps> = ({
                  valentine
               </div>
 
-              <div className="flex gap-6 mt-6 relative z-10">
+              <div className="flex gap-4 mt-6 relative z-10">
+                  {/* Model Toggles */}
                   {['gemini', 'deepseek'].map((model) => {
                     const isActive = selectedModel === model;
                     return (
@@ -516,6 +581,38 @@ const Typewriter: React.FC<TypewriterProps> = ({
                       </div>
                     );
                   })}
+
+                   {/* Vertical Separator */}
+                   <div className="w-[2px] h-10 bg-black/20 mx-1 rounded-full self-start mt-1"></div>
+
+                   {/* Mode Toggle (Digital vs Mechanical) */}
+                   <div className="flex flex-col items-center gap-2">
+                          <button
+                            onClick={() => {
+                                playSwitchSound();
+                                setIsDigitalMode(!isDigitalMode);
+                            }}
+                            className={`
+                                relative w-12 h-12 rounded-full transition-all duration-150 outline-none group
+                                bg-zinc-900 border-2 border-black
+                                ${isDigitalMode ? 'translate-y-[4px] shadow-none' : 'shadow-[0_4px_0_#111] hover:-translate-y-0.5'}
+                            `}
+                            title={isDigitalMode ? "Switch to Mechanical" : "Switch to Digital Input"}
+                          >
+                              <div className="absolute inset-0.5 rounded-full bg-zinc-800 flex items-center justify-center shadow-inner">
+                                 <div className={`text-zinc-300 transition-colors ${isDigitalMode ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(50,250,150,0.5)]' : 'opacity-40'}`}>
+                                     <span className="material-icons">{isDigitalMode ? 'terminal' : 'keyboard'}</span>
+                                 </div>
+                              </div>
+                          </button>
+                          <div className={`
+                              w-2 h-2 rounded-full transition-all duration-300 border border-black/30
+                              ${isDigitalMode
+                                ? 'bg-emerald-500 shadow-[0_0_10px_#10b981,0_0_20px_#10b981]' 
+                                : 'bg-zinc-900 opacity-50'}
+                          `}></div>
+                  </div>
+
               </div>
 
               <div className="flex flex-col items-center mt-8 mr-4 relative z-10">
@@ -545,6 +642,12 @@ const Typewriter: React.FC<TypewriterProps> = ({
                       isCapsLock={isCapsLock}
                       isShift={isShift}
                       backlightIntensity={backlightIntensity}
+                      isDigitalMode={isDigitalMode}
+                      bufferText={bufferText}
+                      onBufferChange={setBufferText}
+                      onPrint={handleDigitalPrint}
+                      onTriggerAI={handleDigitalAI}
+                      isAIActive={!!selectedModel}
                    />
                    
                    {/* Backlight Dimmer Control - Visible only in dark mode */}
