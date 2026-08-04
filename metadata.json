@@ -1,5 +1,6 @@
 {
   "name": "Olivetti Valentine AI Typewriter",
   "description": "A realistic simulation of an Olivetti Valentine typewriter on a desk, powered by Gemini AI for interactive typing conversations.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

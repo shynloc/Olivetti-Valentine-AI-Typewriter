@@ -1,12 +1,12 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { APIKeys } from '../types';
+import { APIKeys, PadType } from '../types';
 import { playSwitchSound, playKeySound } from '../services/soundService';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface ConfidentialFolderProps {
   apiKeys: APIKeys;
   onSave: (keys: APIKeys) => void;
+  padType?: PadType;
 }
 
 const NewtonLogo = () => (
@@ -44,26 +44,141 @@ const IconBar = () => (
     </div>
 );
 
-const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave }) => {
+// Helper Components for Device Styling
+const SettingsForm = ({ apiKeys, localKeys, setLocalKeys, onSave, onSleep, styleType }: any) => {
+    // Styles for inputs based on OS type
+    const getInputClass = () => {
+        switch(styleType) {
+            case 'newton': return "w-full bg-transparent border-b border-dotted border-[#1a2b15] text-[#1a2b15] font-serif outline-none placeholder-[#1a2b15]/30 focus:bg-[#1a2b15]/5";
+            case 'p900': return "w-full bg-white border-b-2 border-blue-300 text-[#003366] text-xs font-sans p-1 outline-none rounded-none";
+            case 'blackberry': return "w-full bg-white/10 border-b border-zinc-500 text-white text-xs font-sans p-2 outline-none focus:border-blue-500";
+            case 'vaio': return "w-full bg-white border border-[#2b5c92] text-black text-xs font-sans p-1 shadow-sm outline-none";
+            case 'treo': return "w-full bg-white border border-zinc-400 rounded-sm text-black text-xs font-mono p-1 shadow-inner outline-none";
+            default: return "";
+        }
+    };
+
+    const getLabelClass = () => {
+        switch(styleType) {
+            case 'newton': return "text-[9px] font-bold text-[#1a2b15] uppercase block mb-0.5";
+            case 'p900': return "text-[10px] font-bold text-[#003366] uppercase mb-0.5 block";
+            case 'blackberry': return "text-[10px] font-medium text-zinc-400 uppercase mb-1 block";
+            case 'vaio': return "text-[10px] text-[#2b5c92] mb-0.5 block font-sans";
+            case 'treo': return "text-[10px] font-bold text-zinc-700 uppercase mb-0.5 block";
+            default: return "";
+        }
+    };
+
+    const getButtonClass = (type: 'save' | 'sleep') => {
+        const base = "px-4 py-2 text-[10px] font-bold uppercase transition-all active:scale-95 ";
+        if (type === 'save') {
+            switch(styleType) {
+                case 'newton': return "px-3 py-1 bg-[#1a2b15] text-[#9ea78e] border border-[#1a2b15] rounded shadow-[1px_1px_0_rgba(0,0,0,0.5)] text-[10px] font-bold uppercase active:translate-y-[1px] active:shadow-none hover:opacity-90";
+                case 'p900': return base + "bg-gradient-to-b from-[#f0f0f0] to-[#d0d0d0] text-black border border-gray-400 rounded-sm shadow-sm";
+                case 'blackberry': return base + "bg-[#0070f3] text-white w-full rounded-none border-t border-white/20";
+                case 'vaio': return base + "bg-gradient-to-b from-[#f3f8fc] to-[#c7d5ed] border border-[#7c9bc3] rounded-[2px] text-black hover:bg-[#ffe48d]";
+                case 'treo': return base + "bg-zinc-800 text-white rounded-full border border-black shadow";
+            }
+        } else {
+             switch(styleType) {
+                case 'newton': return "px-3 py-1 border border-[#1a2b15] rounded shadow-[1px_1px_0_#1a2b15] text-[10px] font-bold uppercase active:translate-y-[1px] active:shadow-none hover:bg-white/20";
+                case 'p900': return base + "text-[#003366] underline";
+                case 'blackberry': return base + "text-zinc-500 hover:text-white";
+                case 'vaio': return base + "text-red-700 hover:underline";
+                case 'treo': return base + "text-zinc-500 border border-zinc-300 rounded-full";
+            }
+        }
+        return base;
+    };
+
+    const textColor = styleType === 'blackberry' ? 'text-white' : styleType === 'newton' ? 'text-[#1a2b15]' : 'text-black';
+
+    return (
+        <form onSubmit={onSave} className="flex flex-col gap-3 h-full">
+            <div className="flex-1 overflow-y-auto pr-1">
+                <div className="mb-3">
+                    <label className={getLabelClass()}>User Nickname</label>
+                    <input type="text" value={localKeys.nickname} onChange={e => setLocalKeys({...localKeys, nickname: e.target.value})} className={getInputClass()} maxLength={12} placeholder="User" />
+                </div>
+                <div className="mb-3">
+                    <label className={getLabelClass()}>Gemini API Key</label>
+                    <input type="password" value={localKeys.gemini} onChange={e => setLocalKeys({...localKeys, gemini: e.target.value})} className={getInputClass()} placeholder="Required" />
+                </div>
+                <div className="mb-3">
+                    <label className={getLabelClass()}>Gemini Model</label>
+                    <div className={`flex gap-2 text-[10px] ${textColor}`}>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                            <div className={`w-3 h-3 border border-current flex items-center justify-center ${styleType === 'newton' ? 'bg-white' : ''}`}>
+                                {localKeys.geminiModel === 'gemini-2.5-flash' && <div className={`w-2 h-2 ${styleType === 'newton' ? 'bg-[#1a2b15]' : 'bg-current'}`}></div>}
+                            </div>
+                            Flash
+                            <input type="radio" className="hidden" checked={localKeys.geminiModel === 'gemini-2.5-flash'} onChange={() => setLocalKeys({...localKeys, geminiModel: 'gemini-2.5-flash'})}/>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                             <div className={`w-3 h-3 border border-current flex items-center justify-center ${styleType === 'newton' ? 'bg-white' : ''}`}>
+                                {localKeys.geminiModel === 'gemini-3-pro-preview' && <div className={`w-2 h-2 ${styleType === 'newton' ? 'bg-[#1a2b15]' : 'bg-current'}`}></div>}
+                            </div>
+                            Pro
+                            <input type="radio" className="hidden" checked={localKeys.geminiModel === 'gemini-3-pro-preview'} onChange={() => setLocalKeys({...localKeys, geminiModel: 'gemini-3-pro-preview'})}/>
+                        </label>
+                    </div>
+                </div>
+                <div className="mb-3">
+                    <label className={getLabelClass()}>DeepSeek API Key</label>
+                    <input type="password" value={localKeys.deepseek} onChange={e => setLocalKeys({...localKeys, deepseek: e.target.value})} className={getInputClass()} placeholder="Optional" />
+                </div>
+                 <div className="mb-1">
+                    <label className={getLabelClass()}>DeepSeek Model</label>
+                    <div className={`flex gap-2 text-[10px] ${textColor}`}>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                            <div className={`w-3 h-3 border border-current flex items-center justify-center ${styleType === 'newton' ? 'bg-white' : ''}`}>
+                                {localKeys.deepSeekModel === 'deepseek-chat' && <div className={`w-2 h-2 ${styleType === 'newton' ? 'bg-[#1a2b15]' : 'bg-current'}`}></div>}
+                            </div>
+                            Chat
+                            <input type="radio" className="hidden" checked={localKeys.deepSeekModel === 'deepseek-chat'} onChange={() => setLocalKeys({...localKeys, deepSeekModel: 'deepseek-chat'})}/>
+                        </label>
+                        <label className="flex items-center gap-1 cursor-pointer">
+                             <div className={`w-3 h-3 border border-current flex items-center justify-center ${styleType === 'newton' ? 'bg-white' : ''}`}>
+                                {localKeys.deepSeekModel === 'deepseek-reasoner' && <div className={`w-2 h-2 ${styleType === 'newton' ? 'bg-[#1a2b15]' : 'bg-current'}`}></div>}
+                            </div>
+                            Reason
+                            <input type="radio" className="hidden" checked={localKeys.deepSeekModel === 'deepseek-reasoner'} onChange={() => setLocalKeys({...localKeys, deepSeekModel: 'deepseek-reasoner'})}/>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="mt-auto flex justify-between items-center pt-2 border-t border-black/5">
+                <button type="button" onClick={onSleep} className={getButtonClass('sleep')}>Sleep</button>
+                <button type="submit" className={getButtonClass('save')}>Save</button>
+            </div>
+        </form>
+    );
+}
+
+const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave, padType = 'newton' }) => {
   const { t } = useLanguage();
   const [isOn, setIsOn] = useState(false);
   const [localKeys, setLocalKeys] = useState<APIKeys>(apiKeys);
   
-  // Dragging State
-  const [position, setPosition] = useState({ x: 50, y: window.innerHeight - 550 });
+  // Dragging State - Fixed position to Top Left
+  const [position, setPosition] = useState({ x: 50, y: 100 });
   const [isDragging, setIsDragging] = useState(false);
   
-  // Refs for logic
   const dragOffset = useRef({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
   const hasMoved = useRef(false);
   const isDown = useRef(false);
   const componentRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+      // Update local keys when prop changes
+      setLocalKeys(apiKeys);
+  }, [apiKeys]);
+
   const handleTogglePower = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasMoved.current) return; // Prevent toggle if dragged
-    
+    if (hasMoved.current) return;
     playSwitchSound();
     setIsOn(!isOn);
   };
@@ -79,63 +194,44 @@ const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave
     }, 300);
   };
 
-  // --- Robust Dragging Logic ---
+  // Drag Logic
   const handleMouseDown = (e: React.MouseEvent) => {
-      // Allow interacting with inputs without dragging the whole device
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('label')) {
-          return;
-      }
-
-      if (e.button !== 0) return; // Left click only
-      // e.preventDefault(); // allow focus
-
+      if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.closest('label')) return;
+      if (e.button !== 0) return;
+      
       isDown.current = true;
       hasMoved.current = false;
-      
       const rect = e.currentTarget.getBoundingClientRect();
-      dragOffset.current = {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top
-      };
+      dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
       startPos.current = { x: e.clientX, y: e.clientY };
   };
 
   useEffect(() => {
       const handleGlobalMove = (e: MouseEvent) => {
           if (!isDown.current || !componentRef.current) return;
-
           const dx = e.clientX - startPos.current.x;
           const dy = e.clientY - startPos.current.y;
-
-          // Threshold for click vs drag
           if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
               hasMoved.current = true;
               if (!isDragging) setIsDragging(true);
           }
-
           if (hasMoved.current) {
               let newX = e.clientX - dragOffset.current.x;
               let newY = e.clientY - dragOffset.current.y;
-              
-              // Boundaries
-              newX = Math.max(0, Math.min(newX, window.innerWidth - 340));
-              newY = Math.max(0, Math.min(newY, window.innerHeight - 500));
-
+              newX = Math.max(0, Math.min(newX, window.innerWidth - 300));
+              newY = Math.max(0, Math.min(newY, window.innerHeight - 400));
               setPosition({ x: newX, y: newY });
           }
       };
       
       const handleGlobalUp = () => {
           isDown.current = false;
-          if (isDragging) {
-              setTimeout(() => setIsDragging(false), 50);
-          }
+          if (isDragging) setTimeout(() => setIsDragging(false), 50);
       };
 
       window.addEventListener('mousemove', handleGlobalMove);
       window.addEventListener('mouseup', handleGlobalUp);
-      
       return () => {
           window.removeEventListener('mousemove', handleGlobalMove);
           window.removeEventListener('mouseup', handleGlobalUp);
@@ -154,27 +250,11 @@ const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave
       `
   };
 
-  return (
-    <div 
-        ref={componentRef}
-        className={`
-            absolute z-[150] flex flex-col items-center perspective-1000
-            ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
-            transition-transform duration-200 ease-out
-        `}
-        style={{ 
-            left: position.x, 
-            top: position.y,
-            transform: isOn ? 'scale(1.05)' : 'scale(1.0)',
-        }}
-        onMouseDown={handleMouseDown}
-    >
-      {/* Device Shadow */}
-      <div className="absolute top-4 left-4 w-full h-full bg-black/40 blur-xl rounded-[30px] pointer-events-none"></div>
+  // --- RENDERERS ---
 
-      {/* Device Body (MessagePad Style) */}
+  // 1. Apple Newton MessagePad (The "Original" Style)
+  const renderNewton = () => (
       <div className="relative w-[320px] h-[480px] bg-[#2a2a2a] rounded-[24px] shadow-[inset_0_2px_4px_rgba(255,255,255,0.1),0_0_0_1px_rgba(0,0,0,1)] flex flex-col items-center overflow-hidden border-b-4 border-black">
-          
           {/* Matte Texture */}
           <div className="absolute inset-0 rounded-[24px] opacity-40 pointer-events-none" style={rubberTexture}></div>
 
@@ -231,96 +311,7 @@ const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave
                                         System Config
                                     </div>
                                     
-                                    <form onSubmit={handleSave} className="flex flex-col gap-2 p-1">
-                                        
-                                        {/* Nickname */}
-                                        <div className="group">
-                                            <label className="text-[9px] font-bold text-[#1a2b15] uppercase block mb-0.5">User Name</label>
-                                            <input 
-                                                type="text" 
-                                                value={localKeys.nickname}
-                                                onChange={e => setLocalKeys({...localKeys, nickname: e.target.value})}
-                                                className="w-full bg-transparent border-b border-dotted border-[#1a2b15] text-[#1a2b15] font-serif text-lg outline-none placeholder-[#1a2b15]/30 focus:bg-[#1a2b15]/5"
-                                                placeholder="Guest"
-                                                maxLength={12}
-                                            />
-                                        </div>
-
-                                        {/* Gemini Key */}
-                                        <div className="group mt-1">
-                                            <label className="text-[9px] font-bold text-[#1a2b15] uppercase block mb-0.5">Gemini API Key</label>
-                                            <input 
-                                                type="password" 
-                                                value={localKeys.gemini}
-                                                onChange={e => setLocalKeys({...localKeys, gemini: e.target.value})}
-                                                className="w-full bg-white/50 border border-[#1a2b15] text-[#1a2b15] text-[10px] p-1 outline-none shadow-inner"
-                                            />
-                                        </div>
-
-                                        {/* Gemini Model Selection */}
-                                        <div className="flex gap-2 mt-1 px-1 mb-2">
-                                            <label className="flex items-center gap-1 cursor-pointer">
-                                                <div className={`w-3 h-3 border border-[#1a2b15] bg-white flex items-center justify-center`}>
-                                                    {localKeys.geminiModel === 'gemini-2.5-flash' && <div className="w-2 h-2 bg-[#1a2b15]"></div>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-[#1a2b15]">2.5 Flash</span>
-                                                <input type="radio" className="hidden" checked={localKeys.geminiModel === 'gemini-2.5-flash'} onChange={() => setLocalKeys({...localKeys, geminiModel: 'gemini-2.5-flash'})}/>
-                                            </label>
-                                            <label className="flex items-center gap-1 cursor-pointer">
-                                                 <div className={`w-3 h-3 border border-[#1a2b15] bg-white flex items-center justify-center`}>
-                                                    {localKeys.geminiModel === 'gemini-3-pro-preview' && <div className="w-2 h-2 bg-[#1a2b15]"></div>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-[#1a2b15]">3.0 Pro</span>
-                                                <input type="radio" className="hidden" checked={localKeys.geminiModel === 'gemini-3-pro-preview'} onChange={() => setLocalKeys({...localKeys, geminiModel: 'gemini-3-pro-preview'})}/>
-                                            </label>
-                                        </div>
-
-                                        {/* DeepSeek Key */}
-                                        <div className="group">
-                                            <label className="text-[9px] font-bold text-[#1a2b15] uppercase block mb-0.5">DeepSeek API Key</label>
-                                            <input 
-                                                type="password" 
-                                                value={localKeys.deepseek}
-                                                onChange={e => setLocalKeys({...localKeys, deepseek: e.target.value})}
-                                                className="w-full bg-white/50 border border-[#1a2b15] text-[#1a2b15] text-[10px] p-1 outline-none shadow-inner"
-                                            />
-                                        </div>
-
-                                        {/* DeepSeek Model Selection */}
-                                        <div className="flex gap-2 mt-1 px-1">
-                                            <label className="flex items-center gap-1 cursor-pointer">
-                                                <div className={`w-3 h-3 border border-[#1a2b15] bg-white flex items-center justify-center`}>
-                                                    {localKeys.deepSeekModel === 'deepseek-chat' && <div className="w-2 h-2 bg-[#1a2b15]"></div>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-[#1a2b15]">Chat</span>
-                                                <input type="radio" className="hidden" checked={localKeys.deepSeekModel === 'deepseek-chat'} onChange={() => setLocalKeys({...localKeys, deepSeekModel: 'deepseek-chat'})}/>
-                                            </label>
-                                            <label className="flex items-center gap-1 cursor-pointer">
-                                                 <div className={`w-3 h-3 border border-[#1a2b15] bg-white flex items-center justify-center`}>
-                                                    {localKeys.deepSeekModel === 'deepseek-reasoner' && <div className="w-2 h-2 bg-[#1a2b15]"></div>}
-                                                </div>
-                                                <span className="text-[9px] font-bold text-[#1a2b15]">Reason</span>
-                                                <input type="radio" className="hidden" checked={localKeys.deepSeekModel === 'deepseek-reasoner'} onChange={() => setLocalKeys({...localKeys, deepSeekModel: 'deepseek-reasoner'})}/>
-                                            </label>
-                                        </div>
-
-                                        {/* Buttons */}
-                                        <div className="mt-4 flex justify-end gap-2 border-t border-dotted border-[#1a2b15] pt-2">
-                                            <button 
-                                                type="button" 
-                                                onClick={handleTogglePower}
-                                                className="px-3 py-1 border border-[#1a2b15] rounded shadow-[1px_1px_0_#1a2b15] text-[10px] font-bold uppercase active:translate-y-[1px] active:shadow-none hover:bg-white/20"
-                                            >
-                                                Sleep
-                                            </button>
-                                            <button 
-                                                type="submit" 
-                                                className="px-3 py-1 bg-[#1a2b15] text-[#9ea78e] border border-[#1a2b15] rounded shadow-[1px_1px_0_rgba(0,0,0,0.5)] text-[10px] font-bold uppercase active:translate-y-[1px] active:shadow-none hover:opacity-90"
-                                            >
-                                                Save
-                                            </button>
-                                        </div>
-                                    </form>
+                                    <SettingsForm apiKeys={apiKeys} localKeys={localKeys} setLocalKeys={setLocalKeys} onSave={handleSave} onSleep={handleTogglePower} styleType="newton" />
                                </div>
 
                                {/* Permanent Icon Strip */}
@@ -341,6 +332,208 @@ const ConfidentialFolder: React.FC<ConfidentialFolderProps> = ({ apiKeys, onSave
               <div className="w-1 h-full bg-zinc-700/30 rounded-full"></div>
           </div>
       </div>
+  );
+
+  // 2. Sony Ericsson P900 (Symbian UIQ)
+  const renderP900 = () => (
+      <div className="w-[260px] h-[480px] bg-gradient-to-b from-[#a0aab5] via-[#cfd6dd] to-[#9ea9b5] rounded-[10px] shadow-[0_15px_30px_rgba(0,0,0,0.6)] p-3 flex flex-col relative border border-[#7c8996]">
+          {/* Top Speaker Grill */}
+          <div className="h-8 w-full flex justify-center items-start gap-1">
+              <div className="w-10 h-1 bg-black/40 rounded-full"></div>
+              <div className="w-10 h-1 bg-black/40 rounded-full"></div>
+          </div>
+
+          {/* Screen */}
+          <div className="flex-1 bg-[#bccad6] border-2 border-gray-400 shadow-inner relative overflow-hidden">
+               <div className={`w-full h-full bg-white transition-opacity duration-300 ${isOn ? 'opacity-100' : 'opacity-10'}`}>
+                   {/* UIQ Header */}
+                   <div className="h-6 bg-gradient-to-r from-[#5a7d9a] to-[#7fa0bd] flex items-center px-2">
+                       <span className="text-white font-sans text-[10px] font-bold">Preferences</span>
+                       <div className="ml-auto w-3 h-3 bg-white/20 rounded-sm"></div>
+                   </div>
+                   {/* Content */}
+                   <div className="p-3 bg-[#f0f4f8] h-full flex flex-col font-sans">
+                       <div className="border-b-2 border-[#5a7d9a] mb-2 text-[#003366] text-xs font-bold">Accounts</div>
+                       <div className="flex-1 overflow-y-auto">
+                           <SettingsForm apiKeys={apiKeys} localKeys={localKeys} setLocalKeys={setLocalKeys} onSave={handleSave} onSleep={handleTogglePower} styleType="p900" />
+                       </div>
+                   </div>
+                   {/* Touch Keypad Hint */}
+                   <div className="absolute bottom-0 w-full h-8 bg-[#dbe4eb] border-t border-[#a0b0c0] flex justify-around items-center">
+                       <span className="text-[10px] text-[#5a7d9a] font-bold">Done</span>
+                       <span className="text-[10px] text-[#5a7d9a] font-bold">Cancel</span>
+                   </div>
+               </div>
+          </div>
+
+          {/* Bottom Flip / Keypad (Closed State Simulation) */}
+          <div className="h-16 mt-2 bg-[#1a2b3c] rounded-[4px] flex flex-col items-center justify-center gap-1 border-t-2 border-[#a0aab5]">
+              <div className="text-[8px] text-white/50 uppercase tracking-widest font-bold">Sony Ericsson</div>
+              <div className="flex gap-2">
+                  <div className="w-8 h-4 bg-[#2c4054] rounded-sm border border-[#3e566d]"></div>
+                  <div className="w-8 h-4 bg-[#2c4054] rounded-sm border border-[#3e566d]"></div>
+                  <div className="w-8 h-4 bg-[#2c4054] rounded-sm border border-[#3e566d]"></div>
+              </div>
+          </div>
+          
+          {/* Side Jog Dial (Visual) */}
+          <div className="absolute -left-2 top-20 w-2 h-10 bg-gray-700 rounded-l border border-gray-600"></div>
+          {/* Power Button */}
+          <div onClick={handleTogglePower} className="absolute -right-1 top-12 w-2 h-6 bg-red-800 rounded-r cursor-pointer hover:bg-red-600 border border-red-900"></div>
+      </div>
+  );
+
+  // 3. BlackBerry Passport (BB10)
+  const renderBlackberry = () => (
+      <div className="w-[340px] h-[400px] bg-[#111] rounded-[10px] shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex flex-col relative border-x-[4px] border-zinc-400">
+          {/* Top Bezel */}
+          <div className="h-8 flex justify-center items-center">
+              <span className="text-zinc-500 font-sans font-bold text-[8px] tracking-[0.2em] uppercase">BlackBerry</span>
+          </div>
+
+          {/* Screen (Square) */}
+          <div className="w-full aspect-square bg-black relative">
+              <div className={`w-full h-full transition-opacity duration-300 ${isOn ? 'opacity-100' : 'opacity-0'}`}>
+                  {/* BB10 UI */}
+                  <div className="w-full h-full bg-cover relative p-6 flex flex-col" style={{ backgroundImage: 'linear-gradient(to bottom right, #2b0042, #000)' }}>
+                      <div className="text-white text-2xl font-light mb-4 border-b border-white/20 pb-2">Settings</div>
+                      <div className="flex-1">
+                          <SettingsForm apiKeys={apiKeys} localKeys={localKeys} setLocalKeys={setLocalKeys} onSave={handleSave} onSleep={handleTogglePower} styleType="blackberry" />
+                      </div>
+                      {/* Gesture Bar */}
+                      <div className="h-1 w-20 bg-white/20 rounded-full mx-auto mt-2"></div>
+                  </div>
+              </div>
+              
+              {/* Wake overlay */}
+              {!isOn && <div className="absolute inset-0 cursor-pointer" onClick={handleTogglePower}></div>}
+          </div>
+
+          {/* Physical Keyboard (Visual Only) */}
+          <div className="flex-1 bg-[#0a0a0a] p-2 flex flex-col justify-end gap-[1px]">
+              {[1, 2, 3].map(row => (
+                  <div key={row} className="flex justify-between gap-[1px] h-full">
+                      {Array.from({length:10}).map((_,k) => (
+                          <div key={k} className="flex-1 bg-[#1a1a1a] rounded-[2px] border-b-2 border-[#050505] flex items-center justify-center shadow-inner">
+                              <div className="text-[6px] text-white/60 font-bold">T</div>
+                          </div>
+                      ))}
+                  </div>
+              ))}
+          </div>
+          
+          {/* Power Button Top */}
+          <div onClick={handleTogglePower} className="absolute top-[-2px] right-8 w-8 h-1 bg-zinc-400 cursor-pointer hover:bg-zinc-200"></div>
+      </div>
+  );
+
+  // 4. Sony Vaio UX17 (UMPC)
+  const renderVaio = () => (
+      <div className="w-[360px] h-[240px] bg-[#e0e0e0] rounded-[8px] shadow-[0_20px_40px_rgba(0,0,0,0.5)] p-1 flex relative border border-gray-400">
+          {/* Left Controls */}
+          <div className="w-12 bg-[#111] rounded-l-[4px] flex flex-col items-center justify-center gap-2 p-1">
+              <div className="w-8 h-8 rounded-full bg-[#222] border border-[#444] shadow-inner flex items-center justify-center">
+                  <div className="w-2 h-2 bg-[#333] rounded-full"></div>
+              </div>
+              <div className="w-6 h-2 bg-zinc-600 rounded-full"></div>
+              <div className="w-6 h-2 bg-zinc-600 rounded-full"></div>
+          </div>
+
+          {/* Screen Frame */}
+          <div className="flex-1 bg-black border-[4px] border-[#111] relative overflow-hidden">
+              <div className={`w-full h-full bg-[#245edb] transition-opacity duration-200 ${isOn ? 'opacity-100' : 'opacity-0'}`} style={{backgroundImage: 'linear-gradient(135deg, #245edb 0%, #aebdda 100%)'}}>
+                  {/* Windows XP Style Window */}
+                  <div className="absolute top-4 left-4 right-4 bottom-4 bg-[#ece9d8] rounded-t-lg shadow-lg flex flex-col font-sans border border-[#0055ea]">
+                      <div className="h-6 bg-gradient-to-r from-[#0058ee] to-[#3f93ff] flex items-center justify-between px-2 rounded-t-[4px]">
+                          <span className="text-white text-xs font-bold shadow-sm">System Properties</span>
+                          <div className="w-4 h-4 bg-[#e64024] border border-white rounded-[2px] text-white flex items-center justify-center text-[8px] cursor-pointer" onClick={handleTogglePower}>X</div>
+                      </div>
+                      <div className="flex-1 p-2 flex flex-col gap-2 overflow-y-auto">
+                          <SettingsForm apiKeys={apiKeys} localKeys={localKeys} setLocalKeys={setLocalKeys} onSave={handleSave} onSleep={handleTogglePower} styleType="vaio" />
+                      </div>
+                  </div>
+              </div>
+              {!isOn && <div className="absolute inset-0 bg-black cursor-pointer flex items-center justify-center" onClick={handleTogglePower}><span className="text-white/20 font-bold italic tracking-widest">VAIO</span></div>}
+          </div>
+
+          {/* Right Controls */}
+          <div className="w-12 bg-[#111] rounded-r-[4px] flex flex-col items-center justify-center gap-2">
+               <div className="w-8 h-8 grid grid-cols-2 gap-1">
+                   <div className="bg-[#222] rounded-sm"></div><div className="bg-[#222] rounded-sm"></div>
+                   <div className="bg-[#222] rounded-sm"></div><div className="bg-[#222] rounded-sm"></div>
+               </div>
+               <div className="mt-4 w-2 h-8 bg-blue-500/50 rounded-full shadow-[0_0_5px_blue]"></div>
+          </div>
+      </div>
+  );
+
+  // 5. Palm Treo 700 (Palm OS)
+  const renderTreo = () => (
+      <div className="w-[260px] h-[460px] bg-[#c0c0c0] rounded-[30px] shadow-[0_15px_30px_rgba(0,0,0,0.5)] flex flex-col items-center p-2 border-b-4 border-gray-500 relative">
+          {/* Antenna Stub */}
+          <div className="absolute -top-4 right-6 w-6 h-8 bg-[#a0a0a0] rounded-t-lg z-[-1] border border-gray-400"></div>
+
+          {/* Earpiece */}
+          <div className="w-16 h-2 bg-gray-400 rounded-full mb-3 mt-2 shadow-inner"></div>
+
+          {/* Screen Area */}
+          <div className="w-[220px] h-[220px] bg-[#9ca4a3] rounded-lg border-2 border-gray-400 shadow-inner relative overflow-hidden">
+              <div className={`w-full h-full bg-white transition-opacity duration-200 ${isOn ? 'opacity-100' : 'opacity-10'}`}>
+                  {/* Palm OS Title Bar */}
+                  <div className="h-5 bg-black text-white flex items-center px-1 justify-between">
+                      <span className="font-bold text-[10px] ml-1">Prefs</span>
+                      <span className="text-[9px]">12:00</span>
+                  </div>
+                  <div className="p-2 h-full flex flex-col bg-white">
+                      <div className="border-b border-black mb-2 text-[10px] font-bold">Connection Settings</div>
+                      <div className="flex-1 overflow-y-auto">
+                          <SettingsForm apiKeys={apiKeys} localKeys={localKeys} setLocalKeys={setLocalKeys} onSave={handleSave} onSleep={handleTogglePower} styleType="treo" />
+                      </div>
+                  </div>
+              </div>
+              {!isOn && <div className="absolute inset-0 cursor-pointer" onClick={handleTogglePower}></div>}
+          </div>
+
+          {/* Navigation Controls */}
+          <div className="w-full h-16 flex justify-center items-center gap-4 mt-2">
+              <div className="w-10 h-6 bg-zinc-300 rounded-full shadow border border-gray-400"></div>
+              <div className="w-12 h-12 rounded-full border border-gray-400 bg-zinc-200 flex items-center justify-center shadow-lg">
+                  <div className="w-6 h-6 bg-zinc-400 rounded-full shadow-inner"></div>
+              </div>
+              <div className="w-10 h-6 bg-zinc-300 rounded-full shadow border border-gray-400"></div>
+          </div>
+
+          {/* Thumb Keyboard (Visual) */}
+          <div className="w-full flex-1 bg-[#d0d0d0] rounded-b-[20px] mt-2 p-1 grid grid-cols-4 gap-[2px]">
+              {Array.from({length: 20}).map((_,i) => (
+                  <div key={i} className="bg-[#e0e0e0] rounded-[4px] shadow-[0_1px_0_#999] border-t border-white flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white/50 rounded-full"></div>
+                  </div>
+              ))}
+          </div>
+      </div>
+  );
+
+  return (
+    <div 
+        ref={componentRef}
+        className={`
+            absolute z-[170] flex flex-col items-center perspective-1000
+            ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+            transition-transform duration-200 ease-out
+        `}
+        style={{ 
+            left: position.x, 
+            top: position.y,
+            transform: isOn ? 'scale(1.05)' : 'scale(1.0)',
+        }}
+        onMouseDown={handleMouseDown}
+    >
+        {padType === 'newton' && renderNewton()}
+        {padType === 'p900' && renderP900()}
+        {padType === 'blackberry' && renderBlackberry()}
+        {padType === 'vaio' && renderVaio()}
+        {padType === 'treo' && renderTreo()}
     </div>
   );
 };

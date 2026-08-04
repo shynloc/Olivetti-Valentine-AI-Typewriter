@@ -442,7 +442,8 @@ const Typewriter: React.FC<TypewriterProps> = ({
 
   // Increased line height for 18px font
   const lineHeight = 28; 
-  // Adjusted offset + 200 (was 150) to ensure paper scrolls up higher to clear the red bar
+  // Adjusted offset: - (currentStrokes.length * lineHeight) + 200
+  // Ensuring enough buffer so text is always above the red bar
   const paperTranslationY = Math.min(0, - (currentStrokes.length * lineHeight) + 200);
 
   return (
@@ -459,7 +460,10 @@ const Typewriter: React.FC<TypewriterProps> = ({
       />
 
       {/* --- PAPER FEED SYSTEM --- */}
-      {/* Changed top from -180px to -250px to physically lift the paper out of the chassis blockage */}
+      {/* 
+         FIX: Changed top from -180px to -250px to physically lift the paper out of the chassis blockage.
+         The previous value was too low, causing text to hide behind the red bar.
+      */}
       <div className={`
            absolute top-[-250px] z-10 w-[580px] flex flex-col items-center pointer-events-none 
            will-change-transform ease-in-out
@@ -472,7 +476,7 @@ const Typewriter: React.FC<TypewriterProps> = ({
            }}>
           
           {/* The Paper */}
-          {/* Increased top padding (pt-32) to ensure the first line starts visibly below the paper top edge, but visible above the machine */}
+          {/* FIX: Increased top padding (pt-32) to ensure the first line starts visibly below the paper top edge, but visible above the machine */}
           <div className="relative w-[520px] min-h-[650px] bg-paper-white paper-texture shadow-[0_5px_15px_rgba(0,0,0,0.2)] p-12 pt-32 text-left font-typewriter text-[18px] text-zinc-900 leading-[28px] origin-bottom">
                {currentStrokes.map((line, idx) => (
                    <div key={idx} className="min-h-[28px] relative whitespace-pre-wrap break-words">

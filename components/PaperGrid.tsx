@@ -123,7 +123,7 @@ const PaperGrid: React.FC<PaperGridProps> = ({
   title, 
   isTrashMode = false, 
   onClose, 
-  onDelete,
+  onDelete, 
   onRestore,
   nickname
 }) => {

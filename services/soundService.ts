@@ -280,7 +280,7 @@ export const playMotorSound = () => {
   const t = ctx.currentTime;
   const duration = 2.0; 
 
-  // Modern Electronic Servo Sound
+  // Modern Electronic Servo Sound - UPDATED
 
   // 1. The High-Pitched Whine (Triangle wave)
   const osc1 = ctx.createOscillator();
